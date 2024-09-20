@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 class Student
 {
@@ -12,23 +13,23 @@ class Student
         this.name = name;
     }
 
-    public void PrintStudent()
+    public string ReturnString()
     {
-        Console.WriteLine(surname + ' ' + name);
+        return $"{surname} {name}";
     }
 }
 
-class Class
+class Group
 {
     Tuple<int, int> num;
     List<Student> students = new List<Student>();
 
-    public Class(int grade, int id)
+    public Group(int grade, int id)
     {
         this.num = new Tuple<int, int>(grade, id);
     }
 
-    public string ClassName()
+    public string GroupName()
     {
         return $"{num.Item1}-{num.Item2}";
     }
@@ -38,30 +39,31 @@ class Class
         students.Add(student);
     }
 
-    public void PrintClass()
+    public void PrintGroup()
     {
-        Console.WriteLine(ClassName());
+        Console.WriteLine(GroupName() + "\n-----");
+        var nameCount = new Dictionary<string, int>();
         foreach (Student student in students)
         {
-            student.PrintStudent();
-        }
-    }
-
-    public void ReadFromFile()
-    {
-        string[] textLines = File.ReadAllText($"{ClassName()}.txt").Split('\n');
-        string[] className = textLines[0].Split('-');
-        this.num = new Tuple<int, int>(int.Parse(className[0]), int.Parse(className[1]));
-        foreach (string student in textLines)
-        {
-            string[] studentName = student.Split(' ');
-            students.Add(new Student(studentName[0], studentName[1]));
+            string fullName = student.ReturnString();
+            if (students.FindAll(x => x.surname == student.surname && x.name == student.name).Count > 1)
+            {
+                if (!nameCount.ContainsKey(student.ReturnString()))
+                    nameCount[fullName] = 1;
+                else
+                    nameCount[fullName]++;
+                Console.WriteLine($"{fullName} ({nameCount[fullName]})");
+            }
+            else
+            {
+                Console.WriteLine(fullName);
+            }
         }
     }
 
     public void ReadFromStream()
     {
-        Console.Write($"Type number of students in the class {ClassName()}: ");
+        Console.Write($"Type number of students in the group {GroupName()}: ");
         int studentsNum = int.Parse(Console.ReadLine());
         for (int i = 0; i < studentsNum; i++)
         {
@@ -69,17 +71,34 @@ class Class
             string[] studentName = Console.ReadLine().Split(' ');
             students.Add(new Student(studentName[0], studentName[1]));
         }
-        Console.WriteLine($"Class {ClassName()} with {studentsNum} students successfully created.\n");
+        Console.WriteLine($"Group {GroupName()} with {studentsNum} students successfully created.\n");
     }
 
+    public void ReadFromFile()
+    {
+        string currentDirectory = Directory.GetCurrentDirectory();
+        string projectDirectory = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
+        string filePath = Path.Combine(projectDirectory, $"{GroupName()}.txt");
+        string[] textLines = File.ReadAllText(filePath).Split('\n');
+        string[] groupName = textLines[0].Split('-');
+        this.num = new Tuple<int, int>(int.Parse(groupName[0]), int.Parse(groupName[1]));
+        foreach (string student in textLines.Skip(1).ToArray())
+        {
+            string[] studentData = student.Split(' ');
+            AddStudent(new Student(studentData[0], studentData[1]));
+        }
+    }
     public void WriteToFile()
     {
-        string textLines = ClassName() + '\n';
+        string textLines = GroupName();
         foreach (Student student in this.students)
         {
-            textLines += $"{student.surname} {student.name}\n";
+            textLines += $"\n{student.ReturnString()}";
         }
-        File.WriteAllText($"{ClassName()}.txt", textLines);
+        string currentDirectory = Directory.GetCurrentDirectory();
+        string projectDirectory = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
+        string filePath = Path.Combine(projectDirectory, $"{GroupName()}.txt");
+        File.WriteAllText(filePath, textLines);
     }
 }
 
@@ -88,10 +107,10 @@ internal class Program
     static int Main()
     {
         Console.WriteLine("start\n");
-        Class class1 = new Class(2, 4);
-        class1.ReadFromStream();
-        class1.PrintClass();
-        class1.WriteToFile();
+        Group group1 = new Group(2, 4);
+        group1.ReadFromStream();
+        group1.PrintGroup();
+        group1.WriteToFile();
         return 0;
     }
 }
