@@ -4,6 +4,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+class Subject
+{
+    public int id;
+    public string name;
+    public Subject(string name, int id)
+    {
+        this.name = name;
+        this.id = id;
+    }
+}
+
 abstract class Person
 {
     public int id;
@@ -27,6 +38,15 @@ class Student : Person
     public int groupId { get; set; }
     public Group group { get; set; }
     public Student(string surname, string name, int id) : base(surname, name, id) { }
+}
+class Teacher : Person
+{
+    public List<Subject> subjects;
+    public Teacher(string surname, string name, int id, List<Subject> subjects) : base(surname, name, id)
+    {
+        this.subjects = subjects;
+    }
+
 }
 
 class Group
