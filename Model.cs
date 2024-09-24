@@ -1,8 +1,12 @@
-﻿namespace SchoolSystem;
+﻿using Microsoft.EntityFrameworkCore;
+using SchoolSystem;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
+
+
 
 class Subject
 {
@@ -17,68 +21,68 @@ class Subject
 
 abstract class Person
 {
-    public int id;
-    public string surname, name;
+    public int PersonId { get; set; }
+    public string Surname { get; set; }
+    public string Name { get; set; }
 
-    public Person(string surname, string name, int id)
+    public Person(string Surname, string Name, int PersonId)
     {
-        this.surname = surname;
-        this.name = name;
-        this.id = id;
+        this.Surname = Surname;
+        this.Name = Name;
+        this.PersonId = PersonId;
     }
 
     public string ReturnString(bool id_needed = false)
     {
-        return $"{surname} {name}{(id_needed ? " " + id : "")}";
+        return $"{Surname} {Name}{(id_needed ? " " + PersonId : "")}";
     }
 }
 
 class Student : Person
 {
-    public int groupId { get; set; }
-    public Group group { get; set; }
-    public Student(string surname, string name, int id) : base(surname, name, id) { }
+    public int GroupId { get; set; }
+    public Group Group { get; set; }
+    public Student(string Surname, string Name, int PersonId) : base(Surname, Name, PersonId) { }
 }
+
 class Teacher : Person
 {
-    public List<Subject> subjects;
-    public Teacher(string surname, string name, int id, List<Subject> subjects) : base(surname, name, id)
-    {
-        this.subjects = subjects;
-    }
-
+    public List<Student> Subjects { get; } = new();
+    public Teacher(string Surname, string Name, int PersonId) : base(Surname, Name, PersonId) { }
 }
 
 class Group
 {
-    public int id;
-    public int grade, index;
-    List<Student> students = new List<Student>();
+    public int GroupId { get; set; }
+    public List<Student> Students { get; } = new();
 
-    public Group(int grade, int index)
+    private int Grade { get; set; }
+    private int Index { get; set; }
+
+    public Group(int Grade, int Index)
     {
-        this.grade = grade;
-        this.index = index;
+        this.Grade = Grade;
+        this.Index = Index;
     }
 
     public string ReturnString()
     {
-        return $"{grade}-{index}";
+        return $"{Grade}-{Index}";
     }
 
     void AddStudent(Student student)
     {
-        students.Add(student);
+        Students.Add(student);
     }
 
     public void PrintGroup()
     {
         Console.WriteLine(this.ReturnString() + "\n-----");
         var nameCount = new Dictionary<string, int>();
-        foreach (Student student in students)
+        foreach (Student student in Students)
         {
             string fullName = student.ReturnString();
-            if (students.FindAll(x => x.surname == student.surname && x.name == student.name).Count > 1)
+            if (Students.FindAll(x => x.Surname == student.Surname && x.Name == student.Name).Count > 1)
             {
                 if (!nameCount.ContainsKey(student.ReturnString()))
                     nameCount[fullName] = 1;
@@ -125,7 +129,7 @@ class Group
         {
             Console.Write($"Type {i + 1} student surname, name and ID: ");
             string[] studentName = Console.ReadLine().Split(' ');
-            students.Add(new Student(studentName[0], studentName[1], int.Parse(studentName[2])));
+            Students.Add(new Student(studentName[0], studentName[1], int.Parse(studentName[2])));
         }
         Console.WriteLine($"Group {this.ReturnString()} with {studentsNum} students successfully created.\n");
     }
@@ -138,8 +142,8 @@ class Group
         string[] textLines = File.ReadAllText(filePath).Split('\n');
 
         string[] groupName = textLines[0].Split('-');
-        this.grade = int.Parse(groupName[0]);
-        this.index = int.Parse(groupName[1]);
+        this.Grade = int.Parse(groupName[0]);
+        this.Index = int.Parse(groupName[1]);
         foreach (string student in textLines.Skip(1).ToArray())
         {
             string[] studentData = student.Split(' ');
@@ -150,9 +154,9 @@ class Group
     public void WriteToFile()
     {
         string textLines = this.ReturnString();
-        foreach (Student student in this.students)
+        foreach (Student student in this.Students)
         {
-            textLines += $"\n{student.ReturnString(id_needed:true)}";
+            textLines += $"\n{student.ReturnString(id_needed: true)}";
         }
         string currentDirectory = Directory.GetCurrentDirectory();
         string projectDirectory = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
@@ -161,17 +165,30 @@ class Group
     }
 }
 
-internal class Program
+public class SchoolContext : DbContext
 {
-    static int Main()
-    {
-        Group group1 = new Group(2, 4);
+    public DbSet<Subject> Subjects { get; set; }
+    public DbSet<Student> Students { get; set; }
+    public DbSet<Teacher> Teachers { get; set; }
+    public DbSet<Group> Groups { get; set; }
 
-        Subject subject1 = new Subject("Maths", 1), subject2 = new Subject("OOP", 2), subject3 = new Subject("Databases", 3);
-        Teacher teacher1 = new Teacher("Yeshua", "Ha-Nozri", 1, new List<Subject> {subject2, subject3});
-        //group1.GenerateRandomGroup(20);
-        //group1.PrintGroup();
-        //group1.WriteToFile();
-        return 0;
+    public string DbPath { get; }
+
+    public SchoolContext()
+    {
+        var folder = Environment.SpecialFolder.LocalApplicationData;
+        var path = Environment.GetFolderPath(folder);
+        DbPath = System.IO.Path.Join(path, "school.db");
+    }
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseSqlite($"Data Source={DbPath}");
+    }
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Student>()
+            .HasOne(s => s.Group)
+            .WithMany(c => c.Students)
+            .HasForeignKey(s => s.GroupId);
     }
 }
