@@ -1,69 +1,73 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿namespace SchoolSystem;
+using Microsoft.EntityFrameworkCore;
 using SchoolSystem;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
 
 
 
-class Subject
+public class Subject
 {
-    public int id;
-    public string name;
-    public Subject(string name, int id)
+    public int SubjectId { get; set; }
+    public string Name { get; set; }
+    public Subject(string Name, int SubjectId)
     {
-        this.name = name;
-        this.id = id;
+        this.Name = Name;
+        this.SubjectId = SubjectId;
     }
 }
 
-abstract class Person
+public abstract class Person
 {
-    public int PersonId { get; set; }
+    public int Id { get; set; }
     public string Surname { get; set; }
     public string Name { get; set; }
 
-    public Person(string Surname, string Name, int PersonId)
+    public Person(string Surname, string Name, int Id)
     {
         this.Surname = Surname;
         this.Name = Name;
-        this.PersonId = PersonId;
+        this.Id = Id;
     }
 
     public string ReturnString(bool id_needed = false)
     {
-        return $"{Surname} {Name}{(id_needed ? " " + PersonId : "")}";
+        return $"{Surname} {Name}{(id_needed ? " " + Id : "")}";
     }
 }
 
-class Student : Person
+public class Student : Person
 {
-    public int GroupId { get; set; }
-    public Group Group { get; set; }
-    public Student(string Surname, string Name, int PersonId) : base(Surname, Name, PersonId) { }
+    public int? GroupId { get; set; }
+    public Group? Group { get; set; }
+    public Student(string Surname, string Name, int Id) : base(Surname, Name, Id) { }
 }
 
-class Teacher : Person
+public class Teacher : Person
 {
-    public List<Student> Subjects { get; } = new();
-    public Teacher(string Surname, string Name, int PersonId) : base(Surname, Name, PersonId) { }
+    public List<Subject>? Subjects { get; } = null!;
+
+    [ForeignKey("HomeroomGroupId")]
+    public Group? HomeroomGroup { get; set; }
+    public int? HomeroomGroupId { get; set; }
+
+
+    public Teacher(string Surname, string Name, int Id) : base(Surname, Name, Id) { }
 }
 
-class Group
+public class Group
 {
     public int GroupId { get; set; }
-    public List<Student> Students { get; } = new();
+    public List<Student>? Students { get; } = new List<Student>();
+    public int? HomeroomTeacherId { get; set; }
+    public Teacher? HomeroomTeacher { get; set; }
 
     private int Grade { get; set; }
     private int Index { get; set; }
-
-    public Group(int Grade, int Index)
-    {
-        this.Grade = Grade;
-        this.Index = Index;
-    }
 
     public string ReturnString()
     {
@@ -183,12 +187,5 @@ public class SchoolContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseSqlite($"Data Source={DbPath}");
-    }
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Student>()
-            .HasOne(s => s.Group)
-            .WithMany(c => c.Students)
-            .HasForeignKey(s => s.GroupId);
     }
 }
