@@ -9,44 +9,32 @@ internal class Program
 {
     static int Main()
     {
-        //Group group1 = new Group(2, 4);
-        //group1.GenerateRandomGroup(20);
-        //group1.PrintGroup();
-        //group1.WriteToFile();
+        using var dbContext = new SchoolContext();
+        dbContext.Initialize();
 
-        using var db = new SchoolContext();
+        Console.WriteLine($"Database path: {dbContext.DbPath}.");
 
-        // Note: This sample requires the database to be created before running.
-        Console.WriteLine($"Database path: {db.DbPath}.");
+        Console.WriteLine("Inserting new student and teacher");
+        dbContext.Add(new Teacher(Surname: "Morrison", Name: "Jim", Id: 28533));
+        dbContext.Add(new Student(Surname: "Lennon", Name: "John", Id: 34556));
+        dbContext.SaveChanges();
 
-        // Create
-        Console.WriteLine("Inserting a new student");
-        db.Add(new Teacher(Surname: "Jack", Name: "Saml", Id: 3));
-        db.Add(new Student(Surname: "Mor", Name: "", Id: 4));
-        db.SaveChanges();
-
-        // Read
-        Console.WriteLine("Querying for a blog");
-        var student1 = db.Students
+        Console.WriteLine("Querying");
+        var student1 = dbContext.Students
             .OrderBy(s => s.Id)
             .First();
-        var teacher1 = db.Teachers
+        var teacher1 = dbContext.Teachers
                     .OrderBy(s => s.Id)
                     .First();
-        Console.WriteLine(student1.ReturnString());
-        Console.WriteLine(teacher1.ReturnString());
+        Console.WriteLine($"First student: {student1.ReturnString()}");
+        Console.WriteLine($"First teacher: {teacher1.ReturnString()}");
 
-        // Update
-        Console.WriteLine("Updating the blog and adding a post");
+        Console.WriteLine("Editing");
         student1.Surname = "Carlson";
-        teacher1.Subjects.Add(
-            new Subject(Name: "Math", SubjectId: 1));
-        db.SaveChanges();
-
-        // Delete
-        Console.WriteLine("Delete the blog");
-        db.Remove(student1);
-        db.SaveChanges();
+        var subject1 = new Subject(Name: "Mathematics");
+        teacher1.Subjects.Add(subject1);
+        dbContext.SaveChanges();
+        Console.WriteLine("------\nFinished successfully");
         return 0;
     }
 }

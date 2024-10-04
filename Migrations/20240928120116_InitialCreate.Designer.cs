@@ -11,7 +11,7 @@ using SchoolSystem;
 namespace SchoolSystem.Migrations
 {
     [DbContext(typeof(SchoolContext))]
-    [Migration("20240925194910_InitialCreate")]
+    [Migration("20240928120116_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

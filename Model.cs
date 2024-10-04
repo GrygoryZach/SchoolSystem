@@ -14,10 +14,9 @@ public class Subject
 {
     public int SubjectId { get; set; }
     public string Name { get; set; }
-    public Subject(string Name, int SubjectId)
+    public Subject(string Name)
     {
         this.Name = Name;
-        this.SubjectId = SubjectId;
     }
 }
 
@@ -49,12 +48,11 @@ public class Student : Person
 
 public class Teacher : Person
 {
-    public List<Subject>? Subjects { get; } = null!;
+    public List<Subject>? Subjects { get; set; } = new List<Subject>();
 
     [ForeignKey("HomeroomGroupId")]
     public Group? HomeroomGroup { get; set; }
     public int? HomeroomGroupId { get; set; }
-
 
     public Teacher(string Surname, string Name, int Id) : base(Surname, Name, Id) { }
 }
@@ -177,15 +175,30 @@ public class SchoolContext : DbContext
     public DbSet<Group> Groups { get; set; }
 
     public string DbPath { get; }
-
-    public SchoolContext()
+    public SchoolContext() {
+        string currentDirectory = Directory.GetCurrentDirectory();
+        string projectDirectory = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
+        DbPath = System.IO.Path.Combine(projectDirectory, "db", "school.sqlite");
+    }
+    public SchoolContext(DbContextOptions<SchoolContext> options) : base(options)
     {
-        var folder = Environment.SpecialFolder.LocalApplicationData;
-        var path = Environment.GetFolderPath(folder);
-        DbPath = System.IO.Path.Join(path, "school.db");
+        string currentDirectory = Directory.GetCurrentDirectory();
+        string projectDirectory = Directory.GetParent(currentDirectory).Parent.Parent.FullName;
+        DbPath = System.IO.Path.Combine(projectDirectory, "db", "school.sqlite");
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlite($"Data Source={DbPath}");
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlite($"Data Source={DbPath}");
+            }
+        }
+    }
+
+    public void Initialize()
+    {
+        // Принудительное создание базы данных без миграций
+        this.Database.EnsureCreated();
     }
 }
